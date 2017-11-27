@@ -2,6 +2,9 @@
 // Created by Zhang Yuanshan on 11/23/17.
 //
 
+
+// some parts of this file come from Github repo /osx-cpu-temp and /libsmc
+
 #include "systemManagementController.h"
 
 /**
