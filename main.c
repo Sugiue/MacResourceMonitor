@@ -43,15 +43,19 @@ int main(int argc, char * argv[]) {
                 DEBUG_PRINT("verbose\n");
                 break;
             case 'h':
-                puts("u: CPU temp, d: Disk Status, f: Fan status, m: Memory status, v: all");
+                puts("u: CPU temp, g: GPU temp, d: Disk Status, f: Fan status, m: Memory status, v: all");
                 return 0;
             case '?':
-                puts("u: CPU temp, d: Disk Status, f: Fan status, m: Memory status, v: all");
+                puts("u: CPU temp, g: GPU temp, d: Disk Status, f: Fan status, m: Memory status, v: all");
                 return 0;
             default:
-                perror("Invalid flag! u: CPU temp, d: Disk Status, f: Fan status, m: Memory status, v: all");
-                abort ();
+                perror("Invalid flag! u: CPU temp, g: GPU temp, d: Disk Status, f: Fan status, m: Memory status, v: all");
+                exit (1);
         }
+    if (flag == 0){
+        perror("u: CPU temp, g: GPU temp, d: Disk Status, f: Fan status, m: Memory status, v: all");
+        exit (1);
+    }
 
     show(flag);
     return 0;
