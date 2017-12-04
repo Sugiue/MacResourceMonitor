@@ -33,11 +33,11 @@ void intHandler(int nothing) {
     keepRunning = 0;
 }
 
-double get_total_disk_size(){
+double get_total_disk_size() {
     struct statvfs buf;
 
     // get current file system's stats
-    if(statvfs("/", &buf) != 0){
+    if (statvfs("/", &buf) != 0) {
         perror("statvfs failed");
     }
 
@@ -46,17 +46,17 @@ double get_total_disk_size(){
     return totalSize;
 }
 
-double get_free_disk_size(){
+double get_free_disk_size() {
     struct statvfs buf;
 
-    if(statvfs("/", &buf) != 0){
+    if (statvfs("/", &buf) != 0) {
         perror("statvfs failed");
     }
     double freeSize = buf.f_frsize * buf.f_bfree / Byte_TO_GB;
     return freeSize;
 }
 
-double get_mem_used(){
+double get_mem_used() {
     vm_size_t pageSize;
     mach_port_t machPort;
     mach_msg_type_number_t count;
@@ -65,12 +65,11 @@ double get_mem_used(){
     machPort = mach_host_self();
     count = sizeof(vmStats) / sizeof(natural_t);
     if (KERN_SUCCESS == host_page_size(machPort, &pageSize) &&
-        KERN_SUCCESS == host_statistics64(machPort, HOST_VM_INFO, (host_info64_t)&vmStats, &count))
-    {
+        KERN_SUCCESS == host_statistics64(machPort, HOST_VM_INFO, (host_info64_t) &vmStats, &count)) {
         // used memory = page size * (active + inactive + wired)
         // note that on Mac inactive mem is still used
-        long long usedMemory = ((int64_t)vmStats.active_count + (int64_t)vmStats.inactive_count +
-                (int64_t)vmStats.wire_count) *  (int64_t)pageSize;
+        long long usedMemory = ((int64_t) vmStats.active_count + (int64_t) vmStats.inactive_count +
+                                (int64_t) vmStats.wire_count) * (int64_t) pageSize;
         return (usedMemory / Byte_TO_GB);
     }
 
@@ -79,7 +78,7 @@ double get_mem_used(){
 
 // use sysctl to get total memory
 // this is platform based, other ways to get it include /proc/stat, sysconfig
-int get_total_memory(){
+int get_total_memory() {
     int mib[2];
     int64_t memSize;
     mib[0] = CTL_HW;
@@ -95,51 +94,50 @@ int get_total_memory(){
 #define BAR_WIDTH 30
 
 // print a percentage bar
-void printPercent(double percentage)
-{
+void printPercent(double percentage) {
     int val = (int) (percentage * 100);
     int leftFilling = (int) (percentage * BAR_WIDTH);
     int rightFilling = BAR_WIDTH - leftFilling;
-    printw ("%3d%% [%.*s%*s]", val, leftFilling, BAR_FILLING, rightFilling, "");
+    printw("%3d%% [%.*s%*s]", val, leftFilling, BAR_FILLING, rightFilling, "");
 }
 
 
 #define _SEPERATION "-----------------------------------------------------------"
 
-void print_block(char * blockName, char * unit, double numerator, double denominator, int * row){
-    move((*row)++,0);
+void print_block(char *blockName, char *unit, double numerator, double denominator, int *row) {
+    move((*row)++, 0);
     printw(_SEPERATION);
-    move((*row)++,0);
+    move((*row)++, 0);
     printw("%s", blockName);
-    move((*row)++,0);
+    move((*row)++, 0);
 
     // select color according to percentage
-    double percentage = numerator/denominator;
+    double percentage = numerator / denominator;
     int colorIdx = 1;
-    if(percentage < 0.5){
+    if (percentage < 0.5) {
         init_pair(1, COLOR_GREEN, COLOR_BLACK);
         colorIdx = 1;
     }
-    if(percentage >= 0.5 && percentage < 0.75){
+    if (percentage >= 0.5 && percentage < 0.75) {
         init_pair(2, COLOR_YELLOW, COLOR_BLACK);
         colorIdx = 2;
     }
-    if(percentage >= 0.75){
+    if (percentage >= 0.75) {
         init_pair(3, COLOR_RED, COLOR_BLACK);
         colorIdx = 3;
     }
     attron(COLOR_PAIR(colorIdx));
     printPercent(percentage);
-    printw("%.2f%s/%.2f%s", numerator , unit, denominator, unit);
+    printw("%.2f%s/%.2f%s", numerator, unit, denominator, unit);
     attroff(COLOR_PAIR(colorIdx));
-    move((*row)++,0);
+    move((*row)++, 0);
 }
 
-void show(int flag){
+void show(int flag, unsigned int updateInterval) {
     signal(SIGINT, intHandler);
 
     // set up window
-    WINDOW * wnd;
+    WINDOW *wnd;
     wnd = initscr();
     cbreak();
     noecho();
@@ -163,7 +161,7 @@ void show(int flag){
 
     double maxFanSpeed = SMC_get_fan_speed(FAN_0_MAX_RPM);
 
-    while(keepRunning) {
+    while (keepRunning) {
         row = refreshRowIdx;
 
         // CPU
@@ -201,8 +199,37 @@ void show(int flag){
             double gpuTemperautre = SMC_get_temperature(GPU_0_PROXIMITY);
             print_block("GPU Temperature", "°C", gpuTemperautre, 100, &row);
         }
+        // Battery charge
+        if (flag & _BATTERY_STATUS) {
+            int batteryPercentage = SMC_get_current_battery_percent();
+            print_block("Battery Charge", "", batteryPercentage, 100, &row);
+            if (SMC_is_battery_powered()) {
+                printw("battery charged!");
+                move(row++, 0);
+            } else {
+                int batteryTime = SMC_get_time_remaining();
+                if (batteryTime == -1) {
+                    // -1 indicates the system is calculating the time
+                    printw("Time remaining: Calculating");
+                    move(row++, 0);
+                } else {
+                    printw("Time remaining: %d", batteryTime);
+                    move(row++, 0);
+                }
+            }
+//            const char * batteryHealth = SMC_get_battery_health();
+//            printw("battery health %s", batteryHealth);
+//            move(row++,0);
+        }
+
+        // Battery temp
+        if (flag & _BATTERY_STATUS) {
+            double cpuTemperautre = SMC_get_temperature(BATTERY_0_TEMP);
+            print_block("Battery Temperature", "°C", cpuTemperautre, 100, &row);
+        }
+
         refresh();
-        sleep(1);
+        sleep(updateInterval);
     }
 
     SMC_close();

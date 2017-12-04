@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <getopt.h>
 #include <stdlib.h>
+#include <memory.h>
 #include "infoCollector.h"
 
 
@@ -13,10 +14,27 @@
 #define DEBUG_PRINT(fmt, args...)    /* Don't do anything in release builds */
 #endif
 
+struct option long_options[] =
+        {
+                /* These options set a flag. */
+                {"verbose",   no_argument, 0, 'v'},
+                {"cpu",       no_argument, 0, 'u'},
+                {"disk",      no_argument, 0, 'd'},
+                {"fan",       no_argument, 0, 'f'},
+                {"memory",    no_argument, 0, 'm'},
+                {"gpu",       no_argument, 0, 'g'},
+                {"battery",   no_argument, 0, 'b'},
+                {"gpu",       no_argument, 0, 'g'},
+                {"frequency", required_argument, 0, 't'},
+                {"help",      no_argument, 0, 'h'},
 
-int main(int argc, char * argv[]) {
-    int c, flag = 0;
-    while ((c = getopt(argc, argv, "udfmgvh?")) != -1)
+                {0, 0,                     0, 0}
+        };
+
+int main(int argc, char *argv[]) {
+    int c, flag = 0, updateInterval = 1, option_index = 0;
+
+    while ((c = getopt_long(argc, argv, "ubdfmgvh?t:", long_options, &option_index)) != -1)
         switch (c) {
             case 'u':
                 flag |= _CPU_TEMP;
@@ -38,25 +56,34 @@ int main(int argc, char * argv[]) {
                 flag |= _GPU_STATUS;
                 DEBUG_PRINT("gpu status\n");
                 break;
+            case 'b':
+                flag |= _BATTERY_STATUS;
+                DEBUG_PRINT("battery status\n");
+                break;
+            case 't':
+                DEBUG_PRINT("user-defined interval\n");
+                updateInterval = (int) strtol(optarg, NULL, 10);
+                if (updateInterval <= 0) {
+                    perror("updateInterval should be a positive value");
+                    exit(1);
+                }
+                DEBUG_PRINT("user input intvl is %d\n", updateInterval);
+                break;
             case 'v':
                 flag |= _VERBOSE;
                 DEBUG_PRINT("verbose\n");
                 break;
             case 'h':
-                puts("u: CPU temp, g: GPU temp, d: Disk Status, f: Fan status, m: Memory status, v: all");
-                return 0;
-            case '?':
-                puts("u: CPU temp, g: GPU temp, d: Disk Status, f: Fan status, m: Memory status, v: all");
+                puts("u: CPU temp, g: GPU temp, d: Disk Status, f: Fan status, m: Memory status, b: Battery status, v: all");
                 return 0;
             default:
-                perror("Invalid flag! u: CPU temp, g: GPU temp, d: Disk Status, f: Fan status, m: Memory status, v: all");
-                exit (1);
+                exit(1);
         }
-    if (flag == 0){
-        perror("u: CPU temp, g: GPU temp, d: Disk Status, f: Fan status, m: Memory status, v: all");
-        exit (1);
+    if (flag == 0) {
+        perror("u: CPU temp, g: GPU temp, d: Disk Status, f: Fan status, m: Memory status, Battery status, v: all");
+        exit(1);
     }
 
-    show(flag);
+    show(flag, (unsigned int) updateInterval);
     return 0;
 }

@@ -7,4 +7,4 @@ set(SOURCE_FILES main.c systemManagementController.c systemManagementController.
 
 add_executable(FinalProject ${SOURCE_FILES})
 
-target_link_libraries(FinalProject "-framework IOKit" "-lcurses")
+target_link_libraries(FinalProject "-framework IOKit" "-lcurses" "-framework CoreFoundation")

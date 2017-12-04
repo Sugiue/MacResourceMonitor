@@ -6,6 +6,9 @@
 // some parts of this file come from Github repo /osx-cpu-temp and /libsmc
 
 #include "systemManagementController.h"
+#include <IOKit/ps/IOPowerSources.h>
+#include <IOKit/ps/IOPSKeys.h>
+
 
 /**
 SMC data types - 4 byte multi-character constants
@@ -230,3 +233,98 @@ int SMC_get_fan_num() {
     return -1;
 }
 
+CFDictionaryRef powerSourceInfo() {
+    CFTypeRef powerInfo = IOPSCopyPowerSourcesInfo();
+
+    if (!powerInfo) return NULL;
+
+    CFArrayRef powerSourcesList = IOPSCopyPowerSourcesList(powerInfo);
+    if (!powerSourcesList) {
+        CFRelease(powerInfo);
+        return NULL;
+    }
+
+    // Should only get one source. But in practice, check for > 0 sources
+    if (CFArrayGetCount(powerSourcesList)) {
+        CFDictionaryRef powerSourceInformation = IOPSGetPowerSourceDescription(powerInfo,
+                                                                               CFArrayGetValueAtIndex(powerSourcesList,
+                                                                                                      0));
+
+        //CFRelease(powerInfo);
+        //CFRelease(powerSourcesList);
+        return powerSourceInformation;
+    }
+
+    CFRelease(powerInfo);
+    CFRelease(powerSourcesList);
+    return NULL;
+}
+
+int SMC_get_current_battery_percent() {
+    CFNumberRef currentCapacity;
+    int currentPercentage;
+
+    CFDictionaryRef powerSourceInformation;
+
+    // the result is a dictionary containing power source information
+    powerSourceInformation = powerSourceInfo();
+    if (powerSourceInformation == NULL) {
+        return 0;
+    }
+
+    // returned result is the left battery percentage
+    currentCapacity = CFDictionaryGetValue(powerSourceInformation, CFSTR(kIOPSCurrentCapacityKey));
+    CFNumberGetValue(currentCapacity, kCFNumberIntType, &currentPercentage);
+
+    return currentPercentage;
+}
+
+int SMC_is_battery_powered() {
+    CFDictionaryRef powerSourceInformation = powerSourceInfo();
+    if (powerSourceInformation == NULL) {
+        return 0;
+    }
+
+    CFBooleanRef isChargedBoolean = CFDictionaryGetValue(powerSourceInformation, CFSTR(kIOPSIsChargedKey));
+    CFBooleanRef isChargingBoolean = CFDictionaryGetValue(powerSourceInformation, CFSTR(kIOPSIsChargingKey));
+
+    // if it is null then it is not fully charged
+    int charged = isChargedBoolean == NULL ? 0 : CFBooleanGetValue(isChargedBoolean);
+    int charging = CFBooleanGetValue(isChargingBoolean);
+
+    // when a battery is full charged or is charging then the computer is powered
+    if (charged || charging) {
+        return 1;
+    }
+    return 0;
+}
+
+// return the health status of battery
+const char *SMC_get_battery_health() {
+    CFDictionaryRef powerSourceInformation = powerSourceInfo();
+    if (powerSourceInformation == NULL) {
+        return "Unknown";
+    }
+
+    CFStringRef batteryHealthRef = (CFStringRef) CFDictionaryGetValue(powerSourceInformation, CFSTR("BatteryHealth"));
+    const char *batteryHealth = CFStringGetCStringPtr(batteryHealthRef, // CFStringRef theString,
+                                                      kCFStringEncodingMacRoman); //CFStringEncoding encoding);
+    if (batteryHealth == NULL)
+        return "unknown";
+
+    return batteryHealth;
+}
+
+// return the left time of the battery
+// -1 indicates the system is calculating the time
+int SMC_get_time_remaining() {
+    CFDictionaryRef powerSourceInformation = powerSourceInfo();
+    if (powerSourceInformation == NULL)
+        return 0;
+
+    int remainingMinutes;
+    CFNumberRef timeRemaining = CFDictionaryGetValue(powerSourceInformation, CFSTR(kIOPSTimeToEmptyKey));
+    CFNumberGetValue(timeRemaining, kCFNumberIntType, &remainingMinutes);
+
+    return remainingMinutes;
+}

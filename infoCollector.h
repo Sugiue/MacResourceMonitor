@@ -11,8 +11,10 @@
 #define _FAN_STATUS (0b100)
 #define _MEM_STATUS (0b1000)
 #define _GPU_STATUS (0b10000)
-#define _VERBOSE (0B11111)
+#define _BATTERY_STATUS (0b100000)
 
-void show(int flag);
+#define _VERBOSE (0B111111)
+
+void show(int flag, unsigned int updateInterval);
 
 #endif //FINALPROJECT_INFOCOLLECTOR_H

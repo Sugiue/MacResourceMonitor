@@ -17,13 +17,14 @@ SMC keys
 - P = Proximity
 - D = Diode
 - H = Heatsink
+- B = Battery
 */
 #define AMBIENT_AIR_0          "TA0P"
 #define AMBIENT_AIR_1          "TA1P"
 #define CPU_0_DIODE            "TC0D"
 #define CPU_0_HEATSINK         "TC0H"
 #define CPU_0_PROXIMITY        "TC0P"
-#define ENCLOSURE_BASE_0       "TB0T"
+#define BATTERY_0_TEMP         "TB0T"
 #define ENCLOSURE_BASE_1       "TB1T"
 #define ENCLOSURE_BASE_2       "TB2T"
 #define ENCLOSURE_BASE_3       "TB3T"
@@ -39,6 +40,7 @@ SMC keys
 #define THUNDERBOLT_0          "TI0P"
 #define THUNDERBOLT_1          "TI1P"
 #define WIRELESS_MODULE        "TW0P"
+
 
 /**
 SMC keys for fans - 4CC code
@@ -66,13 +68,29 @@ Sources: See TMP SMC keys
 #define NUM_KEYS "#KEY"
 #define ODD_FULL "MSDI"
 
+#define CURRENT_BATTERY_CAP 1
+#define MAX_BATTERY_CAP     2
+
 
 kern_return_t SMC_open(void);
+
 kern_return_t SMC_close();
+
 double SMC_get_temperature(char *key);
+
 int SMC_get_fan_num();
-void SMC_get_fan_speeds(int fanNum, double * speeds);
+
+void SMC_get_fan_speeds(int fanNum, double *speeds);
+
 double SMC_get_fan_speed(char *key);
+
+int SMC_get_current_battery_percent();
+
+int SMC_is_battery_powered();
+
+const char *SMC_get_battery_health();
+
+int SMC_get_time_remaining();
 
 #endif //FINALPROJECT_CPUSTATUS_H
 
