@@ -34,6 +34,7 @@ struct option long_options[] =
 int main(int argc, char *argv[]) {
     int c, flag = 0, updateInterval = 1, option_index = 0;
 
+    // I chose to use getopt_long instead of argparse as argparse doesn't exit on OSX by default
     while ((c = getopt_long(argc, argv, "ubdfmgvh?t:", long_options, &option_index)) != -1)
         switch (c) {
             case 'u':

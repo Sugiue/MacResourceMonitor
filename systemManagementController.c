@@ -2,12 +2,11 @@
 // Created by Zhang Yuanshan on 11/23/17.
 //
 
-
-// some parts of this file come from Github repo /osx-cpu-temp and /libsmc and /iStats
-
 #include "systemManagementController.h"
 #include <IOKit/ps/IOPowerSources.h>
 #include <IOKit/ps/IOPSKeys.h>
+
+// some parts of this c file come from Github repo /osx-cpu-temp and /libsmc and /iStats
 
 
 /**
@@ -245,7 +244,6 @@ CFDictionaryRef powerSourceInfo() {
         return NULL;
     }
 
-    // Should only get one source. But in practice, check for > 0 sources
     if (CFArrayGetCount(powerSourcesList)) {
         CFDictionaryRef powerSourceInformation = IOPSGetPowerSourceDescription(powerInfo,
                                                                                CFArrayGetValueAtIndex(powerSourcesList,
