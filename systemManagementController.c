@@ -3,7 +3,7 @@
 //
 
 
-// some parts of this file come from Github repo /osx-cpu-temp and /libsmc
+// some parts of this file come from Github repo /osx-cpu-temp and /libsmc and /iStats
 
 #include "systemManagementController.h"
 #include <IOKit/ps/IOPowerSources.h>
@@ -232,6 +232,7 @@ int SMC_get_fan_num() {
 
     return -1;
 }
+
 
 CFDictionaryRef powerSourceInfo() {
     CFTypeRef powerInfo = IOPSCopyPowerSourcesInfo();
