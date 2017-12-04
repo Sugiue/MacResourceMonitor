@@ -213,7 +213,7 @@ void show(int flag, unsigned int updateInterval) {
                     printw("Time remaining: Calculating");
                     move(row++, 0);
                 } else {
-                    printw("Time remaining: %d", batteryTime);
+                    printw("Time remaining: %d minutes", batteryTime);
                     move(row++, 0);
                 }
             }
