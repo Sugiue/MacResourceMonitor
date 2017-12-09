@@ -168,7 +168,7 @@ void print_usage(char *title, char *unit, double numerator, double denominator, 
     }
 
         attron(COLOR_PAIR(colorIdx));
-        printw("%s: %.2f%s", title, numerator, unit);
+        printw("%s: %.2f %s", title, numerator, unit);
         printPercent(percentage);
         attroff(COLOR_PAIR(colorIdx));
 
@@ -181,8 +181,9 @@ void show_disk_status(int *row) {
     print_seperation(row, "Disk Status");
     double totalDiskSize = get_total_disk_size();
     double freeDiskSize = get_free_disk_size();
-
-    print_usage("Disk Space", "GB", totalDiskSize - freeDiskSize, totalDiskSize, row, WARNING_WHEN_HIGH);
+    printw("Total Disk Size: %.2f GB", totalDiskSize);
+    move((*row)++, 0);
+    print_usage("Used Disk Space", "GB", totalDiskSize - freeDiskSize, totalDiskSize, row, WARNING_WHEN_HIGH);
 }
 
 int sparkleController = 1;
@@ -260,7 +261,7 @@ void show_battery_status(int *row) {
 
     int batteryPercentage = SMC_get_current_battery_percent();
     if (SMC_is_battery_powered()) {
-        printw("Battery charged!");
+        printw("Battery Charged!");
         move(*row++, 0);
     } else {
         int batteryTime = SMC_get_time_remaining();
