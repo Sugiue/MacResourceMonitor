@@ -17,6 +17,4 @@
 
 void show(int flag, unsigned int updateInterval);
 
-
-
 #endif //FINALPROJECT_INFOCOLLECTOR_H

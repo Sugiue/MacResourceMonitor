@@ -327,3 +327,17 @@ int SMC_get_time_remaining() {
 
     return remainingMinutes;
 }
+
+int hasBattery() {
+    CFDictionaryRef powerSourceInformation = powerSourceInfo();
+    return powerSourceInformation != NULL;
+}
+
+int systemSupported(){
+    // at least MAC_OS_X_VERSION_10_5 required due to the function used in SMC_call
+    #if MAC_OS_X_VERSION_10_5
+    return 1;
+    #else
+    return 0;
+    #endif
+}

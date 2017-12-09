@@ -17,6 +17,8 @@
 #include "systemManagementController.h"
 
 #define Byte_TO_GB (1024.0 * 1024 * 1024)
+#define WARNING_WHEN_HIGH 0
+#define WARNING_WHEN_LOW 1
 
 // marco for debug print
 #define DEBUG
@@ -89,51 +91,203 @@ int get_total_memory() {
     return (int) (memSize / Byte_TO_GB);
 }
 
+#define GREEN_BLACK 1
+#define YELLOW_BLACK 2
+#define RED_BLACK 3
+#define CYAN_BLACK 4
+#define BLUE_BLACK 5
+
+void init_color_pair() {
+    init_pair(GREEN_BLACK, COLOR_GREEN, COLOR_BLACK);
+    init_pair(YELLOW_BLACK, COLOR_YELLOW, COLOR_BLACK);
+    init_pair(RED_BLACK, COLOR_RED, COLOR_BLACK);
+    init_pair(CYAN_BLACK, COLOR_CYAN, COLOR_BLACK);
+    init_pair(BLUE_BLACK, COLOR_BLUE, COLOR_BLACK);
+}
 
 #define BAR_FILLING "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
-#define BAR_WIDTH 30
+#define BAR_WIDTH 10
 
 // print a percentage bar
 void printPercent(double percentage) {
-    int val = (int) (percentage * 100);
     int leftFilling = (int) (percentage * BAR_WIDTH);
     int rightFilling = BAR_WIDTH - leftFilling;
-    printw("%3d%% [%.*s%*s]", val, leftFilling, BAR_FILLING, rightFilling, "");
+    printw(" [%.*s%*s]", leftFilling, BAR_FILLING, rightFilling, "");
 }
 
 
-#define _SEPERATION "-----------------------------------------------------------"
+void print_seperation(int *row, char *title) {
+    move((*row)++, 0);
+    attron(COLOR_PAIR(CYAN_BLACK));
+    printw("--- %s ---", title);
+    attroff(COLOR_PAIR(CYAN_BLACK));
+    move((*row)++, 0);
+}
 
-void print_block(char *blockName, char *unit, double numerator, double denominator, int *row) {
-    move((*row)++, 0);
-    printw(_SEPERATION);
-    move((*row)++, 0);
-    printw("%s", blockName);
-    move((*row)++, 0);
 
-    // select color according to percentage
-    double percentage = numerator / denominator;
-    int colorIdx = 1;
-    if (percentage < 0.5) {
-        init_pair(1, COLOR_GREEN, COLOR_BLACK);
-        colorIdx = 1;
+void print_temperature(char *title, int *row, double temperature) {
+    int colorIdx;
+
+    if (temperature < 40) {
+        colorIdx = GREEN_BLACK;
+    } else if (temperature >= 40 && temperature < 60) {
+        colorIdx = YELLOW_BLACK;
+    } else {
+        colorIdx = RED_BLACK;
     }
-    if (percentage >= 0.5 && percentage < 0.75) {
-        init_pair(2, COLOR_YELLOW, COLOR_BLACK);
-        colorIdx = 2;
-    }
-    if (percentage >= 0.75) {
-        init_pair(3, COLOR_RED, COLOR_BLACK);
-        colorIdx = 3;
-    }
+
     attron(COLOR_PAIR(colorIdx));
-    printPercent(percentage);
-    printw("%.2f%s/%.2f%s", numerator, unit, denominator, unit);
+    printw("%s: ", title);
+    printw("%.2f °C", temperature);
     attroff(COLOR_PAIR(colorIdx));
     move((*row)++, 0);
 }
 
+
+void print_usage(char *title, char *unit, double numerator, double denominator, int *row, int warningType) {
+    // choose different warning type, if WARNING_WHEN_HIGH then use red color for usage above 75%
+    // select color according to percentage
+    int colorIdx = 1;
+    double percentage = numerator / denominator;
+    if (percentage < 0.5) {
+        if (warningType == WARNING_WHEN_HIGH) {
+            colorIdx = GREEN_BLACK;
+        } else {
+            colorIdx = RED_BLACK;
+        }
+    }
+    if (percentage >= 0.5 && percentage < 0.75) {
+        colorIdx = YELLOW_BLACK;
+    }
+    if (percentage >= 0.75) {
+        if (warningType == WARNING_WHEN_HIGH) {
+            colorIdx = RED_BLACK;
+        } else {
+            colorIdx = GREEN_BLACK;
+        }
+    }
+
+        attron(COLOR_PAIR(colorIdx));
+        printw("%s: %.2f%s", title, numerator, unit);
+        printPercent(percentage);
+        attroff(COLOR_PAIR(colorIdx));
+
+    move((*row)++, 0);
+
+
+}
+
+void show_disk_status(int *row) {
+    print_seperation(row, "Disk Status");
+    double totalDiskSize = get_total_disk_size();
+    double freeDiskSize = get_free_disk_size();
+
+    print_usage("Disk Space", "GB", totalDiskSize - freeDiskSize, totalDiskSize, row, WARNING_WHEN_HIGH);
+}
+
+int sparkleController = 1;
+void show_CPU_status(int *row) {
+    print_seperation(row, "CPU Status");
+    double cpuTemperautre = SMC_get_temperature(CPU_0_PROXIMITY);
+    if (sparkleController) {
+        print_temperature("CPU temp", row, cpuTemperautre);
+    } else {
+        move((*row)++, 0);
+    }
+
+    // make cpu temp sparkle if it is above 70 degree
+    if (cpuTemperautre >= 70) {
+        sparkleController = !sparkleController;
+    } else {
+        sparkleController = 1;
+    }
+}
+
+void show_fan_status(int *row) {
+    int fan_num = SMC_get_fan_num();
+    // for machines such as Macbook which doesn't have any built-in fan
+    if (fan_num == 0) {
+        return;
+    }
+
+    print_seperation(row, "Fan Status");
+
+    double maxFanSpeed = SMC_get_fan_speed(FAN_0_MAX_RPM);
+    printw("Max Fan Speed: %.0f rpm", maxFanSpeed);
+    move((*row)++, 0);
+
+    printw("Installed Fans: %d", fan_num);
+    move((*row)++, 0);
+
+    double fanSpeeds[fan_num];
+    SMC_get_fan_speeds(fan_num, fanSpeeds);
+    char blockName[12] = "Fan   Speed";
+
+    // print each fan
+    for (int i = 0; i < fan_num; ++i) {
+        blockName[4] = i + 48;
+        print_usage(blockName, "rpm", fanSpeeds[i], maxFanSpeed, row, WARNING_WHEN_HIGH);
+    }
+}
+
+void show_mem_status(int *row) {
+    print_seperation(row, "Memory Status");
+    int total_mem = get_total_memory();
+    printw("Installed Mem: %d GB", total_mem);
+    move((*row)++, 0);
+
+    double memTemperature = SMC_get_temperature(MEMORY_SLOTS_PROXIMITY);
+    print_temperature("Mem Temp: ", row, memTemperature);
+
+    double used_mem = get_mem_used();
+    print_usage("Memory Usage", "GB", used_mem, total_mem, row, WARNING_WHEN_HIGH);
+}
+
+void show_GPU_status(int *row) {
+    print_seperation(row, "GPU Status");
+
+    double gpuTemperautre = SMC_get_temperature(GPU_0_PROXIMITY);
+    print_temperature("GPU Temp: ", row, gpuTemperautre);
+}
+
+void show_battery_status(int *row) {
+    // for machines such as iMac which does not have a built-in battery
+    if (!hasBattery()) {
+        return;
+    }
+
+    print_seperation(row, "Battery Status");
+
+    int batteryPercentage = SMC_get_current_battery_percent();
+    if (SMC_is_battery_powered()) {
+        printw("Battery charged!");
+        move(*row++, 0);
+    } else {
+        int batteryTime = SMC_get_time_remaining();
+        if (batteryTime == -1) {
+            // -1 indicates the system is calculating the time
+            printw("Time remaining: Calculating");
+            move(*row++, 0);
+        } else {
+            int hours = batteryTime / 60;
+            int mintues = batteryTime - hours * 60;
+            printw("Time remaining: %02d:%02d", hours, mintues);
+            move(*row++, 0);
+        }
+    }
+    print_usage("Battery Charge", "%", batteryPercentage, 100, row, WARNING_WHEN_LOW);
+    printw("\n");
+    double batteryTemperautre = SMC_get_temperature(BATTERY_0_TEMP);
+    print_temperature("Battery Temp", row, batteryTemperautre);
+}
+
+
 void show(int flag, unsigned int updateInterval) {
+    if (!systemSupported()) {
+        perror("System not supported!");
+        return;
+    }
+
     signal(SIGINT, intHandler);
 
     // set up window
@@ -144,88 +298,39 @@ void show(int flag, unsigned int updateInterval) {
     clear();
     refresh();
     start_color();
-    init_pair(5, COLOR_BLUE, COLOR_BLACK);
-    wbkgd(wnd, COLOR_PAIR(5));
-    // control which row to print onto
-    int row = 0;
-
+    init_color_pair();
+    wbkgd(wnd, COLOR_PAIR(BLUE_BLACK));
     SMC_open();
 
-    // DISK
-    if (flag & _DISK_STATUS) {
-        double totalDiskSize = get_total_disk_size();
-        double freeDiskSize = get_free_disk_size();
-        print_block("Disk Space:", "GB", totalDiskSize - freeDiskSize, totalDiskSize, &row);
-    }
-    int refreshRowIdx = row;
-
-    double maxFanSpeed = SMC_get_fan_speed(FAN_0_MAX_RPM);
-
+    // control which row to print onto
+    int row = 0;
     while (keepRunning) {
-        row = refreshRowIdx;
+        clear();
 
+        row = 0;
+        // DISK
+        if (flag & _DISK_STATUS) {
+            show_disk_status(&row);
+        }
         // CPU
         if (flag & _CPU_TEMP) {
-            double cpuTemperautre = SMC_get_temperature(CPU_0_PROXIMITY);
-            print_block("CPU Temperature", "°C", cpuTemperautre, 100, &row);
+            show_CPU_status(&row);
         }
-
         // FAN
         if (flag & _FAN_STATUS) {
-            int fan_num = SMC_get_fan_num();
-            double fanSpeeds[fan_num];
-            SMC_get_fan_speeds(fan_num, fanSpeeds);
-            char blockName[12] = "Fan   Speed";
-
-            // print each fan
-            for (int i = 0; i < fan_num; ++i) {
-                blockName[4] = i + 48;
-                print_block(blockName, "rpm", fanSpeeds[i], maxFanSpeed, &row);
-            }
+            show_fan_status(&row);
         }
-
         // Memory
         if (flag & _MEM_STATUS) {
-            double memTemperature = SMC_get_temperature(MEMORY_SLOTS_PROXIMITY);
-            print_block("Memory Slot Temperature", "°C", memTemperature, 100, &row);
-
-            int total_mem = get_total_memory();
-            double used_mem = get_mem_used();
-            print_block("Memory Usage", "GB", used_mem, total_mem, &row);
+            show_mem_status(&row);
         }
-
         // GPU
         if (flag & _GPU_STATUS) {
-            double gpuTemperautre = SMC_get_temperature(GPU_0_PROXIMITY);
-            print_block("GPU Temperature", "°C", gpuTemperautre, 100, &row);
+            show_GPU_status(&row);
         }
         // Battery charge
         if (flag & _BATTERY_STATUS) {
-            int batteryPercentage = SMC_get_current_battery_percent();
-            print_block("Battery Charge", "", batteryPercentage, 100, &row);
-            if (SMC_is_battery_powered()) {
-                printw("battery charged!");
-                move(row++, 0);
-            } else {
-                int batteryTime = SMC_get_time_remaining();
-                if (batteryTime == -1) {
-                    // -1 indicates the system is calculating the time
-                    printw("Time remaining: Calculating");
-                    move(row++, 0);
-                } else {
-                    printw("Time remaining: %d minutes", batteryTime);
-                    move(row++, 0);
-                }
-            }
-//            const char * batteryHealth = SMC_get_battery_health();
-//            printw("battery health %s", batteryHealth);
-//            move(row++,0);
-        }
-
-        // Battery temp
-        if (flag & _BATTERY_STATUS) {
-            double cpuTemperautre = SMC_get_temperature(BATTERY_0_TEMP);
-            print_block("Battery Temperature", "°C", cpuTemperautre, 100, &row);
+            show_battery_status(&row);
         }
 
         refresh();

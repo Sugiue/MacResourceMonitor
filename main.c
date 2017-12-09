@@ -75,13 +75,13 @@ int main(int argc, char *argv[]) {
                 DEBUG_PRINT("verbose\n");
                 break;
             case 'h':
-                puts("u: CPU temp, g: GPU temp, d: Disk Status, f: Fan status, m: Memory status, b: Battery status, v: all");
+                puts("u: CPU temp, g: GPU temp, d: Disk Status, f: Fan status, m: Memory status, b: Battery status, v: all, t: specify update frequency");
                 return 0;
             default:
                 exit(1);
         }
     if (flag == 0) {
-        perror("u: CPU temp, g: GPU temp, d: Disk Status, f: Fan status, m: Memory status, Battery status, v: all");
+        perror("u: CPU temp, g: GPU temp, d: Disk Status, f: Fan status, m: Memory status, Battery status, v: all, t: specify update frequency");
         exit(1);
     }
 

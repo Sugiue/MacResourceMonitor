@@ -92,5 +92,9 @@ const char *SMC_get_battery_health();
 
 int SMC_get_time_remaining();
 
+int hasBattery();
+
+int systemSupported();
+
 #endif //FINALPROJECT_CPUSTATUS_H
 
