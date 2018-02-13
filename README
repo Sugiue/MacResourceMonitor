@@ -8,32 +8,4 @@ Functionality 1	Show different colors for different levels of resource usage:
     Blue - default text
 
 
-Functionality 2	Show different output formats for different types of usage:
-    1. Related statues are grouped together.
-    2. "progress bar" is used for statuses such as Fan Speed, Disk Space, etc
-    3. Temperatures will be directly displayed
-    4. Battery remaining time is displayed in hours and minutes
-    5. CPU temp sparkles if it is above 70 degree
-
-
-Functionality 3 Dynamically adjust output layout according user’s input flag:
-    1. Each kind of status is not displayed at a fixed position.
-    The position of each "info block" is adjusted by setting a variable called `row`.
-    2. Unlike before, resizing the terminal window won't make the output completely unreadable. (However, if the width
-    or height of window is too small, the printed result will looks messy)
-
-
-Functionality 4	Fix some compatibility issues (i.e. different number of Fans):
-    1. The `systemSupported()` function in systemManagementController will check whether the system is supported.
-    2. Since there are OS X machines such as Macbook (no built-in fan) and iMac (no built-in battery), it checks whether
-    there are battery and fan installed or not. It will skip any section if there is no corresponding hardware information
-    to query.
-    3. The program queries the total number of fans installed and checks the speed of each of them.
-    No fixed fan-speed key, such as FAN_0 or FAN_1, is directly used here.
-
-Testing 1 Show correct number of CPUs and Fans:
-    1. It seems that there is no OS X machine by default having more than 1 CPU. So I decided to use a fixed key to query
-    CPU related info. Consequently, the number of installed CPUs is always correct.
-
-    2. Number of fans is also always correct. On my macbook pro, it always shows 2 CPU.
 
