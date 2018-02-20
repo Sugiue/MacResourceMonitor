@@ -1,12 +1,11 @@
 //
-// Created by Zhang Yuanshan on 11/23/17.
-//
+// Some parts of this c file come from Github repo /osx-cpu-temp and /libsmc and /iStats
+// Please refer to their repos for license information
 
 #include "systemManagementController.h"
 #include <IOKit/ps/IOPowerSources.h>
 #include <IOKit/ps/IOPSKeys.h>
 
-// some parts of this c file come from Github repo /osx-cpu-temp and /libsmc and /iStats
 
 
 /**

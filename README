@@ -1,11 +1,14 @@
-Functionality 1	Show different colors for different levels of resource usage:
-    Now For different usages, the output will use different colors.
-    Color Scheme:
-    Red - Warning
-    Yellow - Middle
-    Green - Safe
-    Cyan - Block title
-    Blue - default text
+A to command line program showing current resource usage for mac
+Thanks to /osx-cpu-temp and /libsmc and /iStats for some code snippets and inspirations
 
-
-
+./macResMon -options
+{"verbose",   no_argument, 0, 'v'},
+{"cpu",       no_argument, 0, 'u'}
+{"disk",      no_argument, 0, 'd'},
+{"fan",       no_argument, 0, 'f'},
+{"memory",    no_argument, 0, 'm'},
+{"gpu",       no_argument, 0, 'g'},
+{"battery",   no_argument, 0, 'b'},
+{"gpu",       no_argument, 0, 'g'},
+{"frequency", required_argument, 0, 't'},
+{"help",      no_argument, 0, 'h'},
